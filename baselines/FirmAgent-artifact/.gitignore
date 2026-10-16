@@ -1,0 +1,39 @@
+# Generated toolchains, firmware targets, and reproduction outputs
+/Environ/
+/Firms/
+/results/
+/Logs/
+/configs/
+/paper/
+/e2e/
+__pycache__/
+*.py[cod]
+*.log
+
+# IDA databases and pipeline artifacts
+*.i64
+*.idb
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+export-for-ai-*/
+Pre_fuzzing.json
+sink_addr.txt
+sink_scope_addr.txt
+sink_cfg.json
+sink_distance_scores.json
+sink_distance_scores.csv
+Source.json
+source.json
+result.json
+result_stream.ndjson
+trace_windows.jsonl
+fuzzing_summary.json
+qemu_trace.log*
+
+# Local credentials and environment files
+.env
+.env.*
+.venv/

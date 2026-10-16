@@ -1,0 +1,49 @@
+FROM ubuntu:20.04
+RUN sed -i "s@http://archive.ubuntu.com/ubuntu@http://mirrors.ustc.edu.cn/ubuntu@g; s@http://security.ubuntu.com/ubuntu@http://mirrors.ustc.edu.cn/ubuntu@g" /etc/apt/sources.list
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y apt-utils sudo git curl wget unzip \
+    python2 python3 python3-venv python3-pip \
+    telnet net-tools iputils-ping iptables iproute2 \
+    libguestfs-tools p7zip-full p7zip-rar zip libpq-dev vim netcat socat \
+    qemu-system dnsutils jq build-essential radare2 liblzo2-dev liblzma-dev zlib1g-dev libmagic1 binutils
+
+RUN python3 -m venv /root/venv
+RUN /root/venv/bin/pip install --upgrade pip
+RUN /root/venv/bin/pip install coloredlogs python-lzo cstruct ubi_reader python-magic
+RUN /root/venv/bin/pip install protobuf==3.20.3 capstone==5.0.1 pycparser==2.21
+RUN /root/venv/bin/pip install angr==9.2.1 networkx==2.8.4 r2pipe==1.6.0 docker==5.0.0 \
+    nclib==1.0.1 requests==2.24.0 python-nmap==0.7.1 lxml==4.7.1 ifaddr==0.2.0 \
+    pwntools==4.9.0 selenium==3.141.0 pyelftools==0.29 keystone-engine psycopg2-binary beautifulsoup4
+
+RUN mkdir -p /work/firmwares && cd /work && git clone --recursive https://github.com/pr0v3rbs/FirmAE
+COPY FirmAEreplacements/install.sh /work/FirmAE/install.sh
+COPY FirmAEreplacements/v2.3.3.tar.gz /work/FirmAE/v2.3.3.tar.gz
+RUN cd /work/FirmAE && ./download.sh
+RUN cd /work/FirmAE && ./install.sh
+RUN ln -sf /bin/ntfs-3g /bin/mount.ntfs-3g || true
+
+COPY FirmAEreplacements/makeNetwork.py /work/FirmAE/scripts/makeNetwork.py
+COPY FirmAEreplacements/delete.sh /work/FirmAE/scripts/delete.sh
+COPY FirmAEreplacements/inferFile.sh /work/FirmAE/scripts/inferFile.sh
+COPY FirmAEreplacements/test_emulation.sh /work/FirmAE/scripts/test_emulation.sh
+COPY FirmAEreplacements/umount.sh /work/FirmAE/scripts/umount.sh
+COPY FirmAEreplacements/extractor.py /work/FirmAE/sources/extractor/extractor.py
+COPY FirmAEreplacements/firmae.config /work/FirmAE/firmae.config
+COPY FirmAEreplacements/run.sh /work/FirmAE/run.sh
+COPY FirmAEreplacements/initializer.py /work/FirmAE/analyses/initializer.py
+
+COPY Greenhouse /gh
+
+COPY chrome104.deb /chrome104.deb
+RUN dpkg -i /chrome104.deb || apt-get -fy install
+RUN rm -f /chrome104.deb
+RUN wget -q https://chromedriver.storage.googleapis.com/104.0.5112.79/chromedriver_linux64.zip \
+    && unzip -q chromedriver_linux64.zip \
+    && cp chromedriver /work/FirmAE/chromedriver \
+    && cp chromedriver /gh/chromedriver \
+    && rm -f chromedriver_linux64.zip chromedriver
+
+COPY squashfs-tools.tar.gz /
+RUN apt-get update && apt-get install -y liblz4-dev && tar -xzf /squashfs-tools.tar.gz && cd /squashfs-tools/squashfs-tools && make && make install && rm -f /squashfs-tools.tar.gz
+
+WORKDIR /gh
